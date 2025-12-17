@@ -4,21 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- РАЗРЕШАЕМ ВСЕ ПОДКЛЮЧЕНИЯ -->
+    <!-- CSP: РАЗРЕШАЕМ ВСЕ WSS И HTTPS ПОДКЛЮЧЕНИЯ -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self' 'unsafe-inline' 'unsafe-eval' https://* wss://* file: data: blob:;
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*;
-      connect-src 'self' https://* wss://* file:;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://* wss://*;
+      connect-src 'self' https://* wss://* file: data: blob:;
       img-src 'self' https://* data: blob:;
       style-src 'self' 'unsafe-inline' https://*;
       font-src 'self' data: https://*;
+      worker-src 'self' blob:;
     ">
     
     <title>GCS Node</title>
     <script>
-      // Полифиллы для Web3 библиотек
+      // Глобальные полифиллы перед загрузкой скриптов
       window.global = window;
-      window.process = { env: {} };
+      if (!window.process) window.process = { env: {} };
     </script>
   </head>
   <body>
