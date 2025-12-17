@@ -4,7 +4,7 @@ const path = require('path');
 let mainWindow;
 let tray = null;
 
-// ВАЖНО: Этот домен должен быть в Allowed Domains в панели Reown
+// ВАЖНО: Этот домен должен совпадать с тем, что вы указали в Reown Dashboard (Website URL)
 const FAKE_DOMAIN = 'https://node-guardian-forge.lovable.app';
 
 function createWindow() {
@@ -13,7 +13,6 @@ function createWindow() {
     height: 700,
     resizable: false,
     title: "GCS Node Client",
-    // Исправленный путь к иконке (выходим из electron/ в корень)
     icon: path.join(__dirname, '../public/icon.png'),
     frame: true,
     autoHideMenuBar: true,
@@ -21,28 +20,31 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      webSecurity: false // Отключаем CORS для работы с Supabase и WalletConnect
+      webSecurity: false // Разрешаем CORS
     }
   });
 
-  // --- ХАК ДЛЯ WALLETCONNECT (REOWN) ---
-  // Подменяем заголовки, чтобы сервер думал, что мы работаем с разрешенного домена
+  // --- МАСКИРОВКА ПОД САЙТ (ОБЯЗАТЕЛЬНО ДЛЯ REOWN) ---
   const filter = {
     urls: [
-      'https://*.walletconnect.com/*',
-      'wss://*.walletconnect.com/*',
-      'https://*.reown.com/*',
-      'wss://*.reown.com/*',
-      'https://*.supabase.co/*'
+      '*://*.walletconnect.com/*',
+      '*://*.walletconnect.org/*',
+      '*://*.reown.com/*',
+      '*://*.supabase.co/*'
     ]
   };
 
   session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
+    // Принудительно ставим заголовки, чтобы сервер думал, что мы - это сайт
     details.requestHeaders['Origin'] = FAKE_DOMAIN;
     details.requestHeaders['Referer'] = FAKE_DOMAIN;
+    
+    // Удаляем заголовки, которые могут выдать Electron
+    delete details.requestHeaders['Electron-Renderer'];
+    
     callback({ requestHeaders: details.requestHeaders });
   });
-  // -------------------------------------
+  // ---------------------------------------------------
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
@@ -61,7 +63,6 @@ function createWindow() {
 
 function createTray() {
   const iconPath = path.join(__dirname, '../public/icon.png');
-  // Проверка на существование иконки, чтобы не падало без неё
   try {
     tray = new Tray(iconPath);
     const contextMenu = Menu.buildFromTemplate([
@@ -73,7 +74,7 @@ function createTray() {
     tray.setContextMenu(contextMenu);
     tray.on('double-click', () => mainWindow.show());
   } catch (e) {
-    console.log("Tray icon not found or failed");
+    console.log("Tray icon error (ignoring for build)");
   }
 }
 
