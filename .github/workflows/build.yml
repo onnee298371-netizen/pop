@@ -1,0 +1,52 @@
+name: Build GCS Desktop Node
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Этот шаг нужен только если вы загружаете файлы "кучей".
+      # Если вы загружаете папки electron, src и т.д. как в инструкции, он не нужен.
+      # Но оставим его на всякий случай, он не помешает.
+      - name: Reorganize file structure (Auto-fix)
+        run: |
+          if not exist "electron" mkdir electron
+          if not exist "src" mkdir src
+          if not exist "public" mkdir public
+          
+          if exist "main.js" move main.js electron/
+          if exist "App.jsx" move App.jsx src/
+          if exist "main.jsx" move main.jsx src/
+          if exist "index.css" move index.css src/
+          if exist "icon.png" move icon.png public/
+        shell: cmd
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build React (Vite)
+        run: npm run build
+
+      - name: Build Electron (Win)
+        run: npm run electron:build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCS-Node-V2-Setup
+          path: release/*.exe
