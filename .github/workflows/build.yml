@@ -18,25 +18,28 @@ jobs:
         with:
           node-version: 20
 
-      # Этот шаг нужен только если вы загружаете файлы "кучей".
-      # Если вы загружаете папки electron, src и т.д. как в инструкции, он не нужен.
-      # Но оставим его на всякий случай, он не помешает.
+      # ИСПРАВЛЕНИЕ: Используем PowerShell для надежного перемещения файлов на Windows.
+      # Старые команды cmd могли выдавать ошибку синтаксиса из-за слешей.
       - name: Reorganize file structure (Auto-fix)
         run: |
-          if not exist "electron" mkdir electron
-          if not exist "src" mkdir src
-          if not exist "public" mkdir public
+          # Создаем папки, если их нет
+          New-Item -ItemType Directory -Force -Path electron, src, public
+
+          # Перемещаем файлы, если они лежат в корне
+          if (Test-Path "main.js") { Move-Item -Path "main.js" -Destination "electron" -Force }
+          if (Test-Path "App.jsx") { Move-Item -Path "App.jsx" -Destination "src" -Force }
+          if (Test-Path "main.jsx") { Move-Item -Path "main.jsx" -Destination "src" -Force }
+          if (Test-Path "index.css") { Move-Item -Path "index.css" -Destination "src" -Force }
+          if (Test-Path "icon.png") { Move-Item -Path "icon.png" -Destination "public" -Force }
           
-          if exist "main.js" move main.js electron/
-          if exist "App.jsx" move App.jsx src/
-          if exist "main.jsx" move main.jsx src/
-          if exist "index.css" move index.css src/
-          if exist "icon.png" move icon.png public/
-        shell: cmd
+          # Выводим список файлов для проверки в логах
+          Get-ChildItem -Recurse
 
       - name: Install Dependencies
         run: npm install
 
+      # Этот шаг можно убрать, так как electron:build тоже запускает build, 
+      # но оставим для надежности проверки React части
       - name: Build React (Vite)
         run: npm run build
 
