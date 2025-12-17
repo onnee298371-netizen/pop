@@ -4,10 +4,11 @@ const path = require('path');
 let mainWindow;
 let tray = null;
 
+// Домен, который мы "эмулируем" для внешних сервисов
 const FAKE_DOMAIN = 'https://node-guardian-forge.lovable.app';
 
-// Игнорируем ошибки сертификатов (помогает при WSS ошибках)
-app.commandLine.appendSwitch('ignore-certificate-errors'); 
+// Игнорируем ошибки сертификатов для WSS соединений
+app.commandLine.appendSwitch('ignore-certificate-errors');
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -20,34 +21,36 @@ function createWindow() {
     autoHideMenuBar: true,
     backgroundColor: '#050510',
     webPreferences: {
+      // ВКЛЮЧАЕМ Node.js окружение внутри окна (как вы просили)
       nodeIntegration: true,
       contextIsolation: false,
-      webSecurity: false, // Отключаем проверку CORS полностью
+      // ОТКЛЮЧАЕМ веб-безопасность для CORS запросов
+      webSecurity: false,
       allowRunningInsecureContent: true
     }
   });
 
-  // --- МАСКИРОВКА ПОД САЙТ ---
+  // --- ПЕРЕХВАТЧИК ЗАПРОСОВ (Обход блокировок Reown) ---
   const filter = {
-    urls: ['*://*/*'] // Перехватываем ВСЁ
+    urls: ['*://*/*']
   };
 
   session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-    // Подменяем Origin только для Reown/WalletConnect и Supabase
+    // Если запрос идет к WalletConnect или Supabase, притворяемся сайтом
     const url = details.url.toLowerCase();
     if (url.includes('walletconnect') || url.includes('reown') || url.includes('supabase')) {
         details.requestHeaders['Origin'] = FAKE_DOMAIN;
         details.requestHeaders['Referer'] = FAKE_DOMAIN;
     }
     
-    // Удаляем хедеры, выдающие Electron
+    // Убираем следы Electron
     delete details.requestHeaders['Electron-Renderer'];
-    delete details.requestHeaders['User-Agent']; // Иногда полезно сбросить UA
     
     callback({ requestHeaders: details.requestHeaders });
   });
-  // ---------------------------
+  // -----------------------------------------------------
 
+  // Загрузка
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
   } else {
@@ -64,7 +67,6 @@ function createWindow() {
 }
 
 function createTray() {
-  // ... ваш старый код трея (без изменений) ...
   const iconPath = path.join(__dirname, '../public/icon.png');
   try {
     tray = new Tray(iconPath);
@@ -77,7 +79,7 @@ function createTray() {
     tray.setContextMenu(contextMenu);
     tray.on('double-click', () => mainWindow.show());
   } catch (e) {
-    console.log("Tray icon error");
+    console.log("Tray icon not found (skipping)");
   }
 }
 
