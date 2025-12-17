@@ -5,7 +5,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 export default defineConfig({
   plugins: [
     react(),
-    // REQUIRED: Polyfills for WalletConnect/Web3 in Electron
+    // ВАЖНО: Этот плагин эмулирует Node.js API (Buffer, process) внутри окна рендера
     nodePolyfills({
       globals: {
         Buffer: true,
@@ -15,11 +15,11 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
-  base: './', // REQUIRED for Electron relative paths
+  base: './', // Относительные пути для Electron
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    target: 'esnext', // Support top-level await
+    target: 'esnext', // Поддержка Top-level await для Web3
     commonjsOptions: {
       transformMixedEsModules: true,
     },
@@ -32,6 +32,6 @@ export default defineConfig({
     },
   },
   define: {
-    'global': 'window',
+    'global': 'window', // Жесткая привязка global к window
   },
 })
