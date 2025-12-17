@@ -5,7 +5,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 export default defineConfig({
   plugins: [
     react(),
-    // ЭТОТ ПЛАГИН ОБЯЗАТЕЛЕН ДЛЯ WALLETCONNECT В ELECTRON
+    // REQUIRED: Polyfills for WalletConnect/Web3 in Electron
     nodePolyfills({
       globals: {
         Buffer: true,
@@ -15,13 +15,13 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
-  base: './', 
+  base: './', // REQUIRED for Electron relative paths
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    target: 'esnext', // Важно для поддержки Top-level await
+    target: 'esnext', // Support top-level await
     commonjsOptions: {
-      transformMixedEsModules: true, // Помогает с wagmi/viem
+      transformMixedEsModules: true,
     },
   },
   resolve: {
@@ -32,7 +32,6 @@ export default defineConfig({
     },
   },
   define: {
-    // Явно задаем global для библиотек, которые этого требуют
     'global': 'window',
   },
 })
