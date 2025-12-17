@@ -4,8 +4,10 @@ const path = require('path');
 let mainWindow;
 let tray = null;
 
-// ВАЖНО: Этот домен должен совпадать с тем, что вы указали в Reown Dashboard (Website URL)
 const FAKE_DOMAIN = 'https://node-guardian-forge.lovable.app';
+
+// Игнорируем ошибки сертификатов (помогает при WSS ошибках)
+app.commandLine.appendSwitch('ignore-certificate-errors'); 
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -20,31 +22,31 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      webSecurity: false // Разрешаем CORS
+      webSecurity: false, // Отключаем проверку CORS полностью
+      allowRunningInsecureContent: true
     }
   });
 
-  // --- МАСКИРОВКА ПОД САЙТ (ОБЯЗАТЕЛЬНО ДЛЯ REOWN) ---
+  // --- МАСКИРОВКА ПОД САЙТ ---
   const filter = {
-    urls: [
-      '*://*.walletconnect.com/*',
-      '*://*.walletconnect.org/*',
-      '*://*.reown.com/*',
-      '*://*.supabase.co/*'
-    ]
+    urls: ['*://*/*'] // Перехватываем ВСЁ
   };
 
   session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-    // Принудительно ставим заголовки, чтобы сервер думал, что мы - это сайт
-    details.requestHeaders['Origin'] = FAKE_DOMAIN;
-    details.requestHeaders['Referer'] = FAKE_DOMAIN;
+    // Подменяем Origin только для Reown/WalletConnect и Supabase
+    const url = details.url.toLowerCase();
+    if (url.includes('walletconnect') || url.includes('reown') || url.includes('supabase')) {
+        details.requestHeaders['Origin'] = FAKE_DOMAIN;
+        details.requestHeaders['Referer'] = FAKE_DOMAIN;
+    }
     
-    // Удаляем заголовки, которые могут выдать Electron
+    // Удаляем хедеры, выдающие Electron
     delete details.requestHeaders['Electron-Renderer'];
+    delete details.requestHeaders['User-Agent']; // Иногда полезно сбросить UA
     
     callback({ requestHeaders: details.requestHeaders });
   });
-  // ---------------------------------------------------
+  // ---------------------------
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
@@ -62,6 +64,7 @@ function createWindow() {
 }
 
 function createTray() {
+  // ... ваш старый код трея (без изменений) ...
   const iconPath = path.join(__dirname, '../public/icon.png');
   try {
     tray = new Tray(iconPath);
@@ -74,7 +77,7 @@ function createTray() {
     tray.setContextMenu(contextMenu);
     tray.on('double-click', () => mainWindow.show());
   } catch (e) {
-    console.log("Tray icon error (ignoring for build)");
+    console.log("Tray icon error");
   }
 }
 
