@@ -3,7 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- РАЗРЕШАЕМ ВСЕ ПОДКЛЮЧЕНИЯ -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self' 'unsafe-inline' 'unsafe-eval' https://* wss://* file: data: blob:;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*;
+      connect-src 'self' https://* wss://* file:;
+      img-src 'self' https://* data: blob:;
+      style-src 'self' 'unsafe-inline' https://*;
+      font-src 'self' data: https://*;
+    ">
+    
     <title>GCS Node</title>
+    <script>
+      // Полифиллы для Web3 библиотек
+      window.global = window;
+      window.process = { env: {} };
+    </script>
   </head>
   <body>
     <div id="root"></div>
